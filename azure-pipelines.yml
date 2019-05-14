@@ -71,3 +71,4 @@ stages:
               appName: $(webAppName)
               package: '$(System.ArtifactsDirectory)/drop/**/target/*.?(war|jar)'
               appSettings: -Port 8888
+              deploymentMethod: runFromPackage
