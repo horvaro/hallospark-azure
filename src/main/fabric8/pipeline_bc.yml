@@ -1,0 +1,50 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: hallospark
+    name: pipeline
+  name: pipeline
+  namespace: viadukt
+spec:
+  failedBuildsHistoryLimit: 5
+  nodeSelector: {}
+  output: {}
+  postCommit: {}
+  resources: {}
+  runPolicy: Serial
+  source:
+    type: None
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        try {
+            //node('maven') {
+            node {
+                stage('deploy to dev'){
+                    openshiftBuild(buildConfig: 'hallospark', showBuildLogs: 'true')
+                }
+                //stage ('deploy'){
+                //    openshiftDeploy(deploymentConfig: 'hallospark')
+                //}
+                stage("approve the deployment") {
+                    input message: "Test deployment: Isch guät?", id: "approval"
+                }
+                stage("deploy prod"){
+                    //openshiftTag(destStream: 'viadukt/hallospark', destTag: 'prod', srcStream: 'viadukt/hallospark', srcTag: 'latest')
+                    //oc tag viadukt/hallospark:latest viadukt/hallospark:prod
+                    openshift.withCluster() { // Use "default" cluster or fallback to OpenShift cluster detection
+                        openshift.tag("viadukt/hallospark:latest", "viadukt/hallospark:prod")
+                    }
+                }
+            }
+        } catch (err) {
+           echo "in catch block"
+           echo "Caught: ${err}"
+           currentBuild.result = 'FAILURE'
+           throw err
+        }    
+    type: JenkinsPipeline
+  successfulBuildsHistoryLimit: 5
+  triggers: []
+status:
